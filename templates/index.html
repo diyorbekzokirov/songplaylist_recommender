@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Songscape — Discover Music</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0a0f;
+            --surface: #13131a;
+            --surface-2: #1a1a24;
+            --border: #2a2a38;
+            --text: #e8e6f0;
+            --text-dim: #8b89a0;
+            --accent: #1db954;
+            --accent-glow: rgba(29, 185, 84, 0.15);
+            --accent-hover: #1ed760;
+            --warm: #f59e0b;
+            --radius: 12px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* ── Ambient background ─────────────────────────── */
+        .ambient {
+            position: fixed;
+            top: -30%; left: -10%;
+            width: 60%; height: 60%;
+            background: radial-gradient(circle, rgba(29,185,84,0.06) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+            animation: drift 20s ease-in-out infinite alternate;
+        }
+        .ambient-2 {
+            position: fixed;
+            bottom: -20%; right: -10%;
+            width: 50%; height: 50%;
+            background: radial-gradient(circle, rgba(245,158,11,0.04) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+            animation: drift 25s ease-in-out infinite alternate-reverse;
+        }
+        @keyframes drift {
+            from { transform: translate(0, 0); }
+            to { transform: translate(40px, 30px); }
+        }
+
+        /* ── Layout ─────────────────────────────────────── */
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 60px 24px 100px;
+        }
+
+        /* ── Header ─────────────────────────────────────── */
+        .header {
+            text-align: center;
+            margin-bottom: 50px;
+            animation: fadeUp 0.8s ease;
+        }
+        .logo {
+            font-family: 'DM Serif Display', serif;
+            font-size: 3rem;
+            letter-spacing: -1px;
+            background: linear-gradient(135deg, var(--accent) 0%, #6ee7a0 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+        }
+        .tagline {
+            color: var(--text-dim);
+            font-weight: 300;
+            font-size: 1.05rem;
+            letter-spacing: 0.5px;
+        }
+
+        /* ── Search ─────────────────────────────────────── */
+        .search-wrap {
+            position: relative;
+            max-width: 600px;
+            margin: 0 auto 40px;
+            animation: fadeUp 0.8s ease 0.1s both;
+            z-index: 200;
+        }
+        .search-icon {
+            position: absolute;
+            left: 18px; top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-dim);
+            pointer-events: none;
+        }
+        .search-input {
+            width: 100%;
+            padding: 16px 20px 16px 50px;
+            background: var(--surface);
+            border: 1.5px solid var(--border);
+            border-radius: 50px;
+            color: var(--text);
+            font-family: 'Outfit', sans-serif;
+            font-size: 1rem;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+        .search-input::placeholder { color: var(--text-dim); }
+        .search-input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        /* ── Dropdown ───────────────────────────────────── */
+        .dropdown {
+            position: absolute;
+            top: calc(100% + 6px);
+            left: 0; right: 0;
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            max-height: 360px;
+            overflow-y: auto;
+            display: none;
+            z-index: 100;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+        .dropdown.active { display: block; }
+        .dropdown-item {
+            padding: 12px 18px;
+            cursor: pointer;
+            transition: background 0.15s;
+            border-bottom: 1px solid rgba(255,255,255,0.03);
+        }
+        .dropdown-item:hover { background: rgba(29,185,84,0.1); }
+        .dropdown-item .song-title {
+            font-weight: 500;
+            font-size: 0.95rem;
+        }
+        .dropdown-item .song-artist {
+            color: var(--text-dim);
+            font-size: 0.82rem;
+            margin-top: 2px;
+        }
+
+        /* ── Currently selected ─────────────────────────── */
+        .now-playing {
+            display: none;
+            background: linear-gradient(135deg, var(--surface) 0%, var(--surface-2) 100%);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 28px 30px;
+            margin-bottom: 40px;
+            position: relative;
+            overflow: hidden;
+        }
+        .now-playing.active {
+            display: block;
+            animation: fadeUp 0.5s ease;
+        }
+        .now-playing::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0;
+            width: 4px; height: 100%;
+            background: var(--accent);
+            border-radius: 4px 0 0 4px;
+        }
+        .np-label {
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--accent);
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        .np-title {
+            font-family: 'DM Serif Display', serif;
+            font-size: 1.7rem;
+            margin-bottom: 4px;
+        }
+        .np-artist {
+            color: var(--text-dim);
+            font-size: 1rem;
+        }
+
+        /* ── Section header ─────────────────────────────── */
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .section-title {
+            font-family: 'DM Serif Display', serif;
+            font-size: 1.4rem;
+        }
+        .section-line {
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
+
+        /* ── Song grid ──────────────────────────────────── */
+        .songs-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 14px;
+        }
+        .song-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 18px 20px;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .song-card:hover {
+            border-color: var(--accent);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(29,185,84,0.1);
+        }
+        .song-card .rank {
+            position: absolute;
+            top: 12px; right: 14px;
+            font-size: 0.7rem;
+            color: var(--text-dim);
+            font-weight: 500;
+            background: var(--surface-2);
+            padding: 3px 8px;
+            border-radius: 20px;
+        }
+        .song-card .card-title {
+            font-weight: 500;
+            font-size: 0.95rem;
+            margin-bottom: 4px;
+            padding-right: 50px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .song-card .card-artist {
+            color: var(--text-dim);
+            font-size: 0.82rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .song-card .similarity-bar {
+            margin-top: 12px;
+            height: 3px;
+            background: var(--surface-2);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        .song-card .similarity-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent), #6ee7a0);
+            border-radius: 3px;
+            transition: width 0.6s ease;
+        }
+
+        /* ── Loading spinner ────────────────────────────── */
+        .loader {
+            display: none;
+            text-align: center;
+            padding: 40px;
+            color: var(--text-dim);
+        }
+        .loader.active { display: block; }
+        .spinner {
+            width: 36px; height: 36px;
+            border: 3px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 12px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ── Discovery section ──────────────────────────── */
+        .discovery { margin-top: 20px; }
+
+        /* ── Empty state ────────────────────────────────── */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-dim);
+        }
+        .empty-icon { font-size: 3rem; margin-bottom: 12px; opacity: 0.5; }
+        .empty-text { font-size: 0.95rem; }
+
+        /* ── Animations ─────────────────────────────────── */
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(16px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .fade-in { animation: fadeUp 0.4s ease both; }
+
+        /* ── Scrollbar ──────────────────────────────────── */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
+
+        /* ── Responsive ─────────────────────────────────── */
+        @media (max-width: 600px) {
+            .logo { font-size: 2.2rem; }
+            .container { padding: 40px 16px 80px; }
+            .songs-grid { grid-template-columns: 1fr; }
+            .np-title { font-size: 1.3rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="ambient"></div>
+    <div class="ambient-2"></div>
+
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo">Songscape</div>
+            <div class="tagline">Find your next favorite song from 2.2 million tracks</div>
+        </div>
+
+        <!-- Search -->
+        <div class="search-wrap">
+            <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+            </svg>
+            <input
+                type="text"
+                class="search-input"
+                id="searchInput"
+                placeholder="Search by song title or artist..."
+                autocomplete="off"
+            >
+            <div class="dropdown" id="dropdown"></div>
+        </div>
+
+        <!-- Now Playing / Selected Song -->
+        <div class="now-playing" id="nowPlaying">
+            <div class="np-label">Finding songs similar to</div>
+            <div class="np-title" id="npTitle"></div>
+            <div class="np-artist" id="npArtist"></div>
+        </div>
+
+        <!-- Recommendations -->
+        <div id="recsSection" style="display:none;">
+            <div class="section-header">
+                <div class="section-title">Recommended for you</div>
+                <div class="section-line"></div>
+            </div>
+            <div class="loader" id="recsLoader">
+                <div class="spinner"></div>
+                <div>Finding similar vibes...</div>
+            </div>
+            <div class="songs-grid" id="recsGrid"></div>
+        </div>
+
+        <!-- Discovery -->
+        <div class="discovery" id="discoverySection">
+            <div class="section-header">
+                <div class="section-title">Discover something new</div>
+                <div class="section-line"></div>
+            </div>
+            <div class="songs-grid" id="discoveryGrid"></div>
+        </div>
+    </div>
+
+    <script>
+        const searchInput = document.getElementById('searchInput');
+        const dropdown = document.getElementById('dropdown');
+        const nowPlaying = document.getElementById('nowPlaying');
+        const npTitle = document.getElementById('npTitle');
+        const npArtist = document.getElementById('npArtist');
+        const recsSection = document.getElementById('recsSection');
+        const recsLoader = document.getElementById('recsLoader');
+        const recsGrid = document.getElementById('recsGrid');
+        const discoverySection = document.getElementById('discoverySection');
+        const discoveryGrid = document.getElementById('discoveryGrid');
+
+        let searchTimeout = null;
+
+        // ── Search with debounce ────────────────────────
+        searchInput.addEventListener('input', () => {
+            clearTimeout(searchTimeout);
+            const q = searchInput.value.trim();
+            if (q.length < 2) {
+                dropdown.classList.remove('active');
+                return;
+            }
+            searchTimeout = setTimeout(() => doSearch(q), 250);
+        });
+
+        // Close dropdown on outside click
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.search-wrap')) {
+                dropdown.classList.remove('active');
+            }
+        });
+
+        async function doSearch(q) {
+            try {
+                const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
+                const songs = await res.json();
+                if (songs.length === 0) {
+                    dropdown.innerHTML = '<div style="padding:16px;color:var(--text-dim);text-align:center;">No songs found</div>';
+                } else {
+                    dropdown.innerHTML = songs.map(s => `
+                        <div class="dropdown-item" onclick="selectSong(${s.id}, '${escapeHtml(s.title)}', '${escapeHtml(s.artist)}')">
+                            <div class="song-title">${escapeHtml(s.title)}</div>
+                            <div class="song-artist">${escapeHtml(s.artist)}</div>
+                        </div>
+                    `).join('');
+                }
+                dropdown.classList.add('active');
+            } catch (err) {
+                console.error('Search error:', err);
+            }
+        }
+
+        // ── Select a song & get recommendations ─────────
+        async function selectSong(id, title, artist) {
+            dropdown.classList.remove('active');
+            searchInput.value = '';
+
+            // Show now playing
+            npTitle.textContent = title;
+            npArtist.textContent = artist;
+            nowPlaying.classList.add('active');
+
+            // Show recs section with loader
+            recsSection.style.display = 'block';
+            recsLoader.classList.add('active');
+            recsGrid.innerHTML = '';
+
+            // Hide discovery
+            discoverySection.style.display = 'none';
+
+            try {
+                const res = await fetch(`/api/recommend?id=${id}&n=20`);
+                const recs = await res.json();
+                recsLoader.classList.remove('active');
+
+                if (recs.length === 0) {
+                    recsGrid.innerHTML = '<div class="empty-state"><div class="empty-icon">🎵</div><div class="empty-text">No recommendations found</div></div>';
+                    return;
+                }
+
+                recsGrid.innerHTML = recs.map((s, i) => `
+                    <div class="song-card fade-in" style="animation-delay:${i * 0.04}s"
+                         onclick="selectSong(${s.id}, '${escapeHtml(s.title)}', '${escapeHtml(s.artist)}')">
+                        <div class="rank">#${i + 1}</div>
+                        <div class="card-title">${escapeHtml(s.title)}</div>
+                        <div class="card-artist">${escapeHtml(s.artist)}</div>
+                        <div class="similarity-bar">
+                            <div class="similarity-fill" style="width:${Math.round(s.similarity * 100)}%"></div>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (err) {
+                recsLoader.classList.remove('active');
+                recsGrid.innerHTML = '<div class="empty-state"><div class="empty-text">Error loading recommendations</div></div>';
+            }
+        }
+
+        // ── Load discovery songs ────────────────────────
+        async function loadDiscovery() {
+            try {
+                const res = await fetch('/api/random');
+                const songs = await res.json();
+                discoveryGrid.innerHTML = songs.map((s, i) => `
+                    <div class="song-card fade-in" style="animation-delay:${i * 0.04}s"
+                         onclick="selectSong(${s.id}, '${escapeHtml(s.title)}', '${escapeHtml(s.artist)}')">
+                        <div class="card-title">${escapeHtml(s.title)}</div>
+                        <div class="card-artist">${escapeHtml(s.artist)}</div>
+                    </div>
+                `).join('');
+            } catch (err) {
+                console.error('Discovery error:', err);
+            }
+        }
+
+        // ── Helpers ─────────────────────────────────────
+        function escapeHtml(str) {
+            return str
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        // ── Init ────────────────────────────────────────
+        loadDiscovery();
+    </script>
+</body>
+</html>
